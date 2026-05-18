@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.models.workspace import Workspace, WorkspaceMember
 from app.models.enums import WorkspaceMemberRole, WorkspaceMemberStatus
+from uuid import UUID
 
 
 def get_user_by_email(db: Session, email: str) -> User | None:
@@ -28,6 +29,10 @@ def create_user(
     db.flush()
 
     return user
+
+def get_user_by_id(db: Session, user_id: UUID) -> User | None:
+    statement = select(User).where(User.id == user_id)
+    return db.scalar(statement)
 
 
 def create_personal_workspace(

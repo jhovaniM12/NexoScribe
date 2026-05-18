@@ -19,5 +19,10 @@ class UserResponse(BaseModel):
     image_url: str | None = None
 
 
-class AuthUserResponse(BaseModel):
+class AuthUserData(BaseModel):
     user: UserResponse
+
+
+class AuthUserResponse(BaseModel):
+    success: bool = True
+    data: AuthUserData
