@@ -265,9 +265,15 @@ Cierra sesión del usuario actual.
 
 Solicita el restablecimiento de contraseña para un usuario registrado.
 
-Si el email existe, el backend genera un token temporal de recuperación y envía un enlace al correo del usuario.
+Si el email existe, el backend:
+
+- Genera un token temporal de recuperación
+- Construye un enlace de restablecimiento para el frontend
+- Envía el enlace al correo del usuario
 
 Por seguridad, la respuesta debe ser la misma aunque el email no exista.
+
+El token NO se retorna en la respuesta HTTP.
 
 ## Body
 
@@ -275,6 +281,20 @@ Por seguridad, la respuesta debe ser la misma aunque el email no exista.
 {
   "email": "jhovani@email.com"
 }
+```
+
+## Email enviado
+
+El correo incluye un enlace con el token como query param:
+
+```http
+https://app.nexoscribe.com/reset-password?token=<reset_token>
+```
+
+En entorno local:
+
+```http
+http://localhost:3000/reset-password?token=<reset_token>
 ```
 
 ## Response
@@ -292,9 +312,19 @@ Por seguridad, la respuesta debe ser la misma aunque el email no exista.
 
 ## Descripción
 
-Restablece la contraseña utilizando un token temporal enviado por correo.
+Restablece la contraseña utilizando el token temporal enviado por correo.
 
-El token debe ser de corta duración y de un solo uso.
+El token debe ser de corta duración.
+
+Para el MVP, el token puede ser un JWT con tipo:
+
+```json
+{
+  "type": "password_reset"
+}
+```
+
+Para producción, se recomienda usar un token opaco almacenado hasheado en base de datos para permitir uso único real.
 
 ## Body
 
