@@ -1,18 +1,28 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status, Cookie
 from sqlalchemy.orm import Session
 from app.shared.responses import SuccessResponse
-
+from app.core.email import send_password_reset_email
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import create_access_token, create_refresh_token
-from app.modules.auth.schemas import AuthUserResponse, LoginRequest, RegisterRequest
+from app.modules.auth.schemas import (
+    AuthUserResponse,
+    LoginRequest,
+    RegisterRequest,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    ResetPasswordRequest
+)
 from app.modules.auth.service import (
     EmailAlreadyRegisteredError,
     InvalidCredentialsError,
     authenticate_user,
     register_user,
     validate_refresh_token,
-    decode_token
+    decode_token,
+    InvalidPasswordResetTokenError,
+    request_password_reset,
+    reset_user_password
 )
 from app.modules.auth import repository
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -166,3 +176,62 @@ def get_me(
         )
 
     return SuccessResponse(success=True, data={"user": user})
+
+
+@router.post(
+    "/logout",
+    response_model=SuccessResponse,
+    status_code=status.HTTP_200_OK,
+)
+def logout(response: Response) -> dict:
+    response.delete_cookie(
+        key="access_token",
+          path="/",
+          samesite="lax",
+          secure=settings.cookie_secure,
+          httponly=True
+        )
+    response.delete_cookie(
+        key="refresh_token",
+        path="/",
+        samesite="lax",
+        secure=settings.cookie_secure,
+        httponly=True
+    )
+    return SuccessResponse(success=True)
+
+
+@router.post(
+    "/forgot-password",
+    response_model=ForgotPasswordResponse,
+    status_code=status.HTTP_200_OK,
+)
+def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)) -> dict:
+    token = request_password_reset(db, payload.email)
+
+    if token is not None and settings.debug:
+        send_password_reset_email(
+            to_email=payload.email,
+            reset_token=token
+          )
+        print(f"Password reset token for {payload.email}: {token}")
+    return ForgotPasswordResponse(
+        success=True,
+        message="If an account with that email exists, a password reset link has been sent.",
+    )
+    
+
+@router.post(
+    "/reset-password",
+    response_model=SuccessResponse,
+    status_code=status.HTTP_200_OK,
+)
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)) -> dict:
+      try:
+         reset_user_password(db, payload.token, payload.password)
+      except InvalidPasswordResetTokenError:
+          raise HTTPException(
+              status_code=status.HTTP_400_BAD_REQUEST,
+              detail="Invalid or expired password reset token",
+          )
+      return SuccessResponse(success=True)

@@ -59,3 +59,10 @@ def create_personal_workspace(
     db.flush()
 
     return workspace
+
+
+def update_user_password(db: Session, user: User, new_password_hash: str) -> User:
+    user.password_hash = new_password_hash
+    db.add(user)
+    db.flush()
+    return user

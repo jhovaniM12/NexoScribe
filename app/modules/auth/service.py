@@ -1,9 +1,10 @@
 from sqlalchemy.orm import Session
-from app.core.security import hash_password, verify_password, decode_token
+from app.core.security import hash_password, verify_password, decode_token, create_password_reset_token
 from app.models.user import User
 from app.modules.auth import repository
 from app.modules.auth.schemas import RegisterRequest, LoginRequest
 from jose import JWTError
+from uuid import UUID
 
 
 class EmailAlreadyRegisteredError(Exception):
@@ -20,6 +21,10 @@ class InvalidAccessTokenError(Exception):
 
 class AuthenticatedUserNotFoundError(Exception):
       pass
+
+class InvalidPasswordResetTokenError(Exception):
+      pass
+
 
 def authenticate_user(db: Session, payload: LoginRequest) -> User:
     user = repository.get_user_by_email(db, payload.email)
@@ -95,3 +100,50 @@ def get_authenticated_user(db: Session, token: str) -> User:
         raise AuthenticatedUserNotFoundError
 
     return user
+
+
+def request_password_reset(db: Session, email: str) -> str | None:
+    user = repository.get_user_by_email(db, email)
+
+    if user is None:
+        return None
+
+    return create_password_reset_token(subject=str(user.id))
+
+
+def validate_password_reset_token(token: str) -> str:
+      try:
+          payload = decode_token(token)
+      except JWTError:
+          raise InvalidPasswordResetTokenError
+
+      if payload.get("type") != "password_reset":
+          raise InvalidPasswordResetTokenError
+
+      user_id = payload.get("sub")
+
+      if user_id is None:
+          raise InvalidPasswordResetTokenError
+
+      return user_id
+
+
+def reset_user_password(db: Session, token: str, password: str) -> None:
+      try:
+          user_id = validate_password_reset_token(token)
+          user_uuid = UUID(user_id)
+      except (InvalidPasswordResetTokenError, ValueError):
+          raise InvalidPasswordResetTokenError
+
+      user = repository.get_user_by_id(db, user_uuid)
+
+      if user is None:
+          raise InvalidPasswordResetTokenError
+
+      repository.update_user_password(
+          db,
+          user=user,
+          new_password_hash=hash_password(password),
+      )
+
+      db.commit()

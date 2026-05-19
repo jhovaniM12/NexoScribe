@@ -10,6 +10,13 @@ class Settings(BaseSettings):
       access_token_expire_minutes: int = 30
       refresh_token_expire_days: int = 7
       cookie_secure: bool = True
+      frontend_url: str = "http://localhost:3000"
+      smtp_host: str
+      smtp_port: int
+      smtp_username: str
+      smtp_password: str
+      smtp_from_email: str
+      smtp_from_name: str
 
       model_config = SettingsConfigDict(
           env_file=".env",

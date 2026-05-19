@@ -26,3 +26,16 @@ class AuthUserData(BaseModel):
 class AuthUserResponse(BaseModel):
     success: bool = True
     data: AuthUserData
+
+
+class ForgotPasswordRequest(BaseModel):
+      email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+      success: bool = True
+      message: str
+
+class ResetPasswordRequest(BaseModel):
+      token: str
+      password: str = Field(min_length=6, max_length=128)

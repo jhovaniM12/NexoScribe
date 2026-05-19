@@ -259,6 +259,74 @@ Cierra sesión del usuario actual.
 
 ---
 
+# POST /auth/forgot-password
+
+## Descripción
+
+Solicita el restablecimiento de contraseña para un usuario registrado.
+
+Si el email existe, el backend genera un token temporal de recuperación y envía un enlace al correo del usuario.
+
+Por seguridad, la respuesta debe ser la misma aunque el email no exista.
+
+## Body
+
+```json
+{
+  "email": "jhovani@email.com"
+}
+```
+
+## Response
+
+```json
+{
+  "success": true,
+  "message": "If the email exists, a password reset link has been sent"
+}
+```
+
+---
+
+# POST /auth/reset-password
+
+## Descripción
+
+Restablece la contraseña utilizando un token temporal enviado por correo.
+
+El token debe ser de corta duración y de un solo uso.
+
+## Body
+
+```json
+{
+  "token": "reset_token",
+  "password": "nuevaPassword123"
+}
+```
+
+## Response
+
+```json
+{
+  "success": true
+}
+```
+
+## Errores posibles
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_RESET_TOKEN",
+    "message": "Invalid or expired reset token"
+  }
+}
+```
+
+---
+
 # GET /auth/me
 
 ## Descripción
@@ -1037,4 +1105,3 @@ Obtiene resumen general del workspace.
 - Publicaciones vencidas
 - Tareas asignadas al usuario
 - Próximos recordatorios
-

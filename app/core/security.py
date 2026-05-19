@@ -8,7 +8,6 @@ password_context = CryptContext(
     deprecated="auto",
 )
 
-
 def hash_password(password: str) -> str:
     return password_context.hash(password)
 
@@ -40,3 +39,13 @@ def decode_token(token: str) -> dict:
           settings.jwt_secret_key,
           algorithms=[settings.jwt_algorithm],
       )
+
+
+def create_password_reset_token(subject: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    payload = {
+        "sub": subject,
+        "type":"password_reset",
+        "exp": expire
+    }
+    return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
