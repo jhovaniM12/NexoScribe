@@ -259,6 +259,104 @@ Cierra sesión del usuario actual.
 
 ---
 
+# POST /auth/forgot-password
+
+## Descripción
+
+Solicita el restablecimiento de contraseña para un usuario registrado.
+
+Si el email existe, el backend:
+
+- Genera un token temporal de recuperación
+- Construye un enlace de restablecimiento para el frontend
+- Envía el enlace al correo del usuario
+
+Por seguridad, la respuesta debe ser la misma aunque el email no exista.
+
+El token NO se retorna en la respuesta HTTP.
+
+## Body
+
+```json
+{
+  "email": "jhovani@email.com"
+}
+```
+
+## Email enviado
+
+El correo incluye un enlace con el token como query param:
+
+```http
+https://app.nexoscribe.com/reset-password?token=<reset_token>
+```
+
+En entorno local:
+
+```http
+http://localhost:3000/reset-password?token=<reset_token>
+```
+
+## Response
+
+```json
+{
+  "success": true,
+  "message": "If the email exists, a password reset link has been sent"
+}
+```
+
+---
+
+# POST /auth/reset-password
+
+## Descripción
+
+Restablece la contraseña utilizando el token temporal enviado por correo.
+
+El token debe ser de corta duración.
+
+Para el MVP, el token puede ser un JWT con tipo:
+
+```json
+{
+  "type": "password_reset"
+}
+```
+
+Para producción, se recomienda usar un token opaco almacenado hasheado en base de datos para permitir uso único real.
+
+## Body
+
+```json
+{
+  "token": "reset_token",
+  "password": "nuevaPassword123"
+}
+```
+
+## Response
+
+```json
+{
+  "success": true
+}
+```
+
+## Errores posibles
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_RESET_TOKEN",
+    "message": "Invalid or expired reset token"
+  }
+}
+```
+
+---
+
 # GET /auth/me
 
 ## Descripción
@@ -273,12 +371,63 @@ Obtiene el usuario autenticado.
 
 Actualiza el perfil del usuario.
 
+Permite actualizar el nombre y, opcionalmente, cargar una imagen de perfil.
+
+Si se envía una imagen, el backend:
+
+- Valida el tipo de archivo
+- Sube la imagen a Google Cloud Storage
+- Guarda la referencia del objeto en `users.image_url`
+- Retorna una URL firmada temporal para consultar la imagen
+
+La URL firmada expira y no debe persistirse en el frontend como valor permanente.
+
+## Requiere
+
+Cookie:
+
+```http
+access_token
+```
+
 ## Body
+
+Content-Type:
+
+```http
+multipart/form-data
+```
+
+Campos:
+
+| Campo | Tipo | Requerido | Descripción |
+| --- | --- | --- | --- |
+| name | string | No | Nuevo nombre del usuario |
+| image | file | No | Imagen de perfil en formato JPEG, PNG o WebP |
+
+## Ejemplo
+
+```http
+PATCH /api/v1/users/me
+Content-Type: multipart/form-data
+
+name=Nuevo nombre
+image=@avatar.png
+```
+
+## Response
 
 ```json
 {
-  "name": "Nuevo nombre",
-  "imageUrl": "https://..."
+  "success": true,
+  "data": {
+    "user": {
+      "id": "uuid",
+      "name": "Nuevo nombre",
+      "email": "jhovani@email.com",
+      "image_url": "https://storage.googleapis.com/nexoscribe-dev/users/user-id/profile-image.png?X-Goog-Algorithm=..."
+    }
+  }
 }
 ```
 
@@ -1037,4 +1186,3 @@ Obtiene resumen general del workspace.
 - Publicaciones vencidas
 - Tareas asignadas al usuario
 - Próximos recordatorios
-
