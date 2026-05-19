@@ -93,7 +93,11 @@ def validate_access_token(token: str) -> str:
 
 
 def get_authenticated_user(db: Session, token: str) -> User:
-    user_id = validate_access_token(token)
+    try:
+        user_id = UUID(validate_access_token(token))
+    except ValueError:
+        raise InvalidAccessTokenError
+
     user = repository.get_user_by_id(db, user_id)
 
     if user is None:

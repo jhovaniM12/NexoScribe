@@ -16,15 +16,17 @@ from app.modules.auth.schemas import (
 from app.modules.auth.service import (
     EmailAlreadyRegisteredError,
     InvalidCredentialsError,
+    InvalidAccessTokenError,
+    AuthenticatedUserNotFoundError,
     authenticate_user,
+    get_authenticated_user,
     register_user,
     validate_refresh_token,
-    decode_token,
     InvalidPasswordResetTokenError,
     request_password_reset,
     reset_user_password
 )
-from app.modules.auth import repository
+from app.modules.users.serializers import serialize_user
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
@@ -152,30 +154,19 @@ def get_me(
         )
 
     try:
-        payload = decode_token(access_token)
-    except Exception:
+        user = get_authenticated_user(db, access_token)
+    except InvalidAccessTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid access token",
         )
-
-    user_id = payload.get("sub")
-
-    if user_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid access token",
-        )
-
-    user = repository.get_user_by_id(db, user_id)
-
-    if user is None:
+    except AuthenticatedUserNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Authenticated user not found",
         )
 
-    return SuccessResponse(success=True, data={"user": user})
+    return {"success": True, "data": {"user": serialize_user(user)}}
 
 
 @router.post(

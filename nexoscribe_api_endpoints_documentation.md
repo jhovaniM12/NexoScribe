@@ -371,12 +371,63 @@ Obtiene el usuario autenticado.
 
 Actualiza el perfil del usuario.
 
+Permite actualizar el nombre y, opcionalmente, cargar una imagen de perfil.
+
+Si se envía una imagen, el backend:
+
+- Valida el tipo de archivo
+- Sube la imagen a Google Cloud Storage
+- Guarda la referencia del objeto en `users.image_url`
+- Retorna una URL firmada temporal para consultar la imagen
+
+La URL firmada expira y no debe persistirse en el frontend como valor permanente.
+
+## Requiere
+
+Cookie:
+
+```http
+access_token
+```
+
 ## Body
+
+Content-Type:
+
+```http
+multipart/form-data
+```
+
+Campos:
+
+| Campo | Tipo | Requerido | Descripción |
+| --- | --- | --- | --- |
+| name | string | No | Nuevo nombre del usuario |
+| image | file | No | Imagen de perfil en formato JPEG, PNG o WebP |
+
+## Ejemplo
+
+```http
+PATCH /api/v1/users/me
+Content-Type: multipart/form-data
+
+name=Nuevo nombre
+image=@avatar.png
+```
+
+## Response
 
 ```json
 {
-  "name": "Nuevo nombre",
-  "imageUrl": "https://..."
+  "success": true,
+  "data": {
+    "user": {
+      "id": "uuid",
+      "name": "Nuevo nombre",
+      "email": "jhovani@email.com",
+      "image_url": "https://storage.googleapis.com/nexoscribe-dev/users/user-id/profile-image.png?X-Goog-Algorithm=..."
+    }
+  }
 }
 ```
 

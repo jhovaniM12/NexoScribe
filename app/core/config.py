@@ -17,6 +17,9 @@ class Settings(BaseSettings):
       smtp_password: str
       smtp_from_email: str
       smtp_from_name: str
+      gcs_bucket_name: str
+      google_application_credentials: str | None = None
+      profile_image_signed_url_expire_minutes: int = 30
 
       model_config = SettingsConfigDict(
           env_file=".env",

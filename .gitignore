@@ -140,3 +140,7 @@ Thumbs.db
 *.db
 *.sqlite
 *.sqlite3
+
+# Secrets
+nexoscribe-bdbf7ee5a923.json
+*service-account*.json
